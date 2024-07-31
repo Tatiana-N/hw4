@@ -1,12 +1,15 @@
 package org.example;
 
 import lombok.Getter;
+import lombok.extern.log4j.Log4j2;
 
+import java.util.Arrays;
 import java.util.Random;
 
 /**
  * Поток болида
  */
+@Log4j2
 public class F1Cars extends Thread implements Comparable<F1Cars> {
 
     /**
@@ -27,7 +30,7 @@ public class F1Cars extends Thread implements Comparable<F1Cars> {
     /**
      * Массив колес
      */
-    private Wheel wheels[] = new Wheel[4];
+    private Wheel wheels[] = new Wheel[]{new Wheel(), new Wheel(), new Wheel(), new Wheel()};
 
     /**
      * Счетчик пройденной дистанции
@@ -77,10 +80,23 @@ public class F1Cars extends Thread implements Comparable<F1Cars> {
      */
     @Override
     public void run() {
-        // TODO дожидаемся старта гонки
+        synchronized (race){
+            try {
+                race.wait();
+            } catch (InterruptedException e) {
+                log.warn("гонка не состоялась");
+                return;
+            }
+        }
+        log.info(this.getName() + " Стартовал");
         race.start(this);
         while (currentDistance < targetDistance) {
-            moveToTarget();
+            try {
+                moveToTarget();
+            } catch (InterruptedException e) {
+                log.warn("выбыл из гонки");
+                break;
+            }
         }
         this.time = race.finish(this);
 
@@ -91,7 +107,7 @@ public class F1Cars extends Thread implements Comparable<F1Cars> {
      * 1) Проверяем необходимость заезда на питстоп
      * 2) Перемещаемся 1000 миллисекунд с случайной скоростью
      */
-    private void moveToTarget() {
+    private void moveToTarget() throws InterruptedException {
         if (isNeedPit()) {
             pitStop.pitline(this);
         }
@@ -148,5 +164,15 @@ public class F1Cars extends Thread implements Comparable<F1Cars> {
      */
     public Wheel getWheel(int position) {
         return wheels[position];
+    }
+
+    @Override
+    public String toString() {
+        return "F1Cars{" +
+            "carId=" + carId +
+            ", wheels=" + Arrays.toString(wheels) +
+            ", currentDistance=" + currentDistance +
+            ", targetDistance=" + targetDistance +
+            '}';
     }
 }
